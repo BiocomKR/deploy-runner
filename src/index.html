@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biocom Deploy Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 { margin-bottom: 24px; color: #fff; font-size: 22px; }
+
+    /* 상태바 */
+    .status-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .status-item {
+      padding: 8px 16px;
+      border-radius: 6px;
+      background: #16213e;
+      color: #eee;
+    }
+    .status-item.running { background: #fbbf24; color: #1a1a2e; }
+    .status-item.success { background: #4ade80; color: #1a1a2e; }
+    .status-item.error { background: #ef4444; color: white; }
+
+    .help-wrapper { position: relative; display: flex; align-items: center; }
+    .help-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #334155;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .help-tooltip {
+      display: none;
+      position: absolute;
+      top: 28px;
+      left: 0;
+      background: #16213e;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      z-index: 100;
+      min-width: 180px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .help-tooltip.show { display: block; }
+    .help-title { font-weight: 600; margin-bottom: 8px; color: #fff; font-size: 13px; }
+    .help-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px; color: #94a3b8; }
+    .help-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #64748b; }
+
+    /* 버튼 */
+    .btn-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .btn {
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: white;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-all { background: #4ade80; color: #1a1a2e; }
+
+    /* 설정 */
+    .config-section { margin-bottom: 16px; }
+    .config-toggle {
+      background: #334155;
+      color: #94a3b8;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .config-panel {
+      display: none;
+      background: #16213e;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .config-panel.show { display: block; }
+    .config-title { margin: 0 0 16px 0; font-size: 16px; color: #fff; }
+    .project-config {
+      background: #0f3460;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .project-header { display: flex; gap: 8px; align-items: flex-start; }
+    .label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+    .input {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #0f0f23;
+      color: #eee;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    .config-field { margin-bottom: 8px; }
+    .remove-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .add-btn {
+      background: #334155;
+      color: #94a3b8;
+      border: 1px dashed #64748b;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .config-btn-row { display: flex; gap: 8px; }
+    .save-btn {
+      background: #4ade80;
+      color: #1a1a2e;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .cancel-btn {
+      background: #64748b;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* 로그 */
+    .log-container {
+      background: #0f0f23;
+      border-radius: 8px;
+      padding: 16px;
+      height: calc(100vh - 320px);
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .log-line { white-space: pre-wrap; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>Biocom Deploy Dashboard</h1>
+
+  <div class="status-bar" id="status-bar"></div>
+
+  <div class="btn-row" id="btn-row"></div>
+
+  <div class="config-section">
+    <button class="config-toggle" onclick="toggleConfig()">Settings</button>
+  </div>
+
+  <div class="config-panel" id="config-panel">
+    <h3 class="config-title">Deploy Settings</h3>
+    <div id="project-list"></div>
+    <button class="add-btn" onclick="addProject()">+ Add Project</button>
+    <div class="config-btn-row">
+      <button class="save-btn" onclick="saveConfig()">Save</button>
+      <button class="cancel-btn" onclick="cancelConfig()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="log-container" id="log"></div>
+
+  <script>
+    const DEFAULT_CONFIG = {
+      projects: [
+        { id: 'example-api', label: 'example-api', script: '/path/to/your/project/scripts/deploy-api.sh', color: '#e94560' },
+        { id: 'example-web', label: 'example-web', script: '/path/to/your/project/scripts/deploy-web.sh', color: '#3b82f6' }
+      ]
+    };
+
+    const COLORS = ['#e94560', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899'];
+    let config = null;
+    let editConfig = null;
+    let statuses = {};
+    let isRunning = false;
+
+    function loadConfig() {
+      const saved = localStorage.getItem('deploy-config');
+      config = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+      config.projects.forEach(p => { statuses[p.id] = 'ready'; });
+      render();
+    }
+
+    function render() {
+      renderStatusBar();
+      renderButtons();
+    }
+
+    function renderStatusBar() {
+      const container = document.getElementById('status-bar');
+      let html = config.projects.map(p => {
+        const status = statuses[p.id] || 'ready';
+        return `<div class="status-item ${status}">${p.label}: ${getStatusText(status)}</div>`;
+      }).join('');
+
+      html += `
+        <div class="help-wrapper">
+          <span class="help-icon" id="help-icon">?</span>
+          <div class="help-tooltip" id="help-tooltip">
+            <div class="help-title">Status Guide</div>
+            <div class="help-item"><span class="help-dot" style="background:#16213e"></span> Ready: 대기 중</div>
+            <div class="help-item"><span class="help-dot" style="background:#fbbf24"></span> Deploying: 배포 진행 중</div>
+            <div class="help-item"><span class="help-dot" style="background:#4ade80"></span> Success: 배포 성공</div>
+            <div class="help-item"><span class="help-dot" style="background:#ef4444"></span> Failed: 배포 실패</div>
+          </div>
+        </div>
+      `;
+      container.innerHTML = html;
+
+      document.getElementById('help-icon').addEventListener('mouseenter', () => {
+        document.getElementById('help-tooltip').classList.add('show');
+      });
+      document.getElementById('help-icon').addEventListener('mouseleave', () => {
+        document.getElementById('help-tooltip').classList.remove('show');
+      });
+    }
+
+    function renderButtons() {
+      const container = document.getElementById('btn-row');
+      let html = config.projects.map((p, i) => `
+        <button class="btn" style="background:${p.color}" onclick="deploy(${i})" ${isRunning ? 'disabled' : ''} title="${p.script}">
+          Deploy ${p.label}
+        </button>
+      `).join('');
+
+      html += `<button class="btn btn-all" onclick="deployAll()" ${isRunning ? 'disabled' : ''}>Deploy All</button>`;
+      container.innerHTML = html;
+    }
+
+    function getStatusText(status) {
+      switch(status) {
+        case 'running': return 'Deploying...';
+        case 'success': return 'Success';
+        case 'error': return 'Failed';
+        default: return 'Ready';
+      }
+    }
+
+    function setStatus(projectId, status) {
+      statuses[projectId] = status;
+      renderStatusBar();
+    }
+
+    function addLog(text) {
+      const log = document.getElementById('log');
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    async function deploy(index) {
+      if (isRunning) return;
+      const project = config.projects[index];
+      if (!project || !project.script) {
+        alert('Script path not configured');
+        return;
+      }
+
+      isRunning = true;
+      renderButtons();
+      clearLog();
+      addLog(`[START] Deploying ${project.label}...`);
+      setStatus(project.id, 'running');
+
+      try {
+        const url = `/api/deploy?projectId=${encodeURIComponent(project.id)}&script=${encodeURIComponent(project.script)}`;
+        const eventSource = new EventSource(url);
+
+        eventSource.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'stdout' || data.type === 'stderr') {
+            addLog(data.text);
+          } else if (data.type === 'done') {
+            eventSource.close();
+            if (data.code === 0) {
+              addLog(`[DONE] ${project.label} deployed successfully!`);
+              setStatus(project.id, 'success');
+            } else {
+              addLog(`[ERROR] ${project.label} deployment failed (exit code: ${data.code})`);
+              setStatus(project.id, 'error');
+            }
+            isRunning = false;
+            renderButtons();
+          } else if (data.type === 'error') {
+            eventSource.close();
+            addLog(`[ERROR] ${data.text}`);
+            setStatus(project.id, 'error');
+            isRunning = false;
+            renderButtons();
+          }
+        };
+
+        eventSource.onerror = () => {
+          eventSource.close();
+          addLog('[ERROR] Connection error');
+          setStatus(project.id, 'error');
+          isRunning = false;
+          renderButtons();
+        };
+      } catch (err) {
+        addLog(`[ERROR] ${err.message}`);
+        setStatus(project.id, 'error');
+        isRunning = false;
+        renderButtons();
+      }
+    }
+
+    async function deployAll() {
+      if (isRunning) return;
+      isRunning = true;
+      renderButtons();
+      clearLog();
+
+      for (let i = 0; i < config.projects.length; i++) {
+        const project = config.projects[i];
+        addLog(`[START] Deploying ${project.label}...`);
+        setStatus(project.id, 'running');
+
+        await new Promise((resolve) => {
+          const url = `/api/deploy?projectId=${encodeURIComponent(project.id)}&script=${encodeURIComponent(project.script)}`;
+          const eventSource = new EventSource(url);
+
+          eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'stdout' || data.type === 'stderr') {
+              addLog(data.text);
+            } else if (data.type === 'done') {
+              eventSource.close();
+              if (data.code === 0) {
+                addLog(`[DONE] ${project.label} deployed successfully!`);
+                setStatus(project.id, 'success');
+              } else {
+                addLog(`[ERROR] ${project.label} deployment failed (exit code: ${data.code})`);
+                setStatus(project.id, 'error');
+              }
+              addLog('');
+              resolve();
+            } else if (data.type === 'error') {
+              eventSource.close();
+              addLog(`[ERROR] ${data.text}`);
+              setStatus(project.id, 'error');
+              addLog('');
+              resolve();
+            }
+          };
+
+          eventSource.onerror = () => {
+            eventSource.close();
+            addLog('[ERROR] Connection error');
+            setStatus(project.id, 'error');
+            addLog('');
+            resolve();
+          };
+        });
+      }
+
+      addLog('[COMPLETE] All deployments finished!');
+      isRunning = false;
+      renderButtons();
+    }
+
+    function toggleConfig() {
+      const panel = document.getElementById('config-panel');
+      if (panel.classList.contains('show')) {
+        panel.classList.remove('show');
+      } else {
+        editConfig = JSON.parse(JSON.stringify(config));
+        renderConfigPanel();
+        panel.classList.add('show');
+      }
+    }
+
+    function renderConfigPanel() {
+      const container = document.getElementById('project-list');
+      container.innerHTML = editConfig.projects.map((p, i) => `
+        <div class="project-config">
+          <div class="project-header">
+            <input class="input" style="font-weight:600;margin-bottom:8px" value="${p.label}" placeholder="Label" onchange="updateEditProject(${i}, 'label', this.value)">
+            <button class="remove-btn" onclick="removeEditProject(${i})">X</button>
+          </div>
+          <div class="config-field">
+            <label class="label">Script Path</label>
+            <input class="input" value="${p.script}" placeholder="/path/to/deploy-script.sh" onchange="updateEditProject(${i}, 'script', this.value)">
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateEditProject(index, field, value) {
+      editConfig.projects[index][field] = value;
+      if (field === 'label') {
+        editConfig.projects[index].id = value.toLowerCase().replace(/\s+/g, '-');
+      }
+    }
+
+    function addProject() {
+      const color = COLORS[editConfig.projects.length % COLORS.length];
+      editConfig.projects.push({ id: `project-${Date.now()}`, label: 'New Project', script: '', color });
+      renderConfigPanel();
+    }
+
+    function removeEditProject(index) {
+      editConfig.projects.splice(index, 1);
+      renderConfigPanel();
+    }
+
+    function saveConfig() {
+      config = editConfig;
+      localStorage.setItem('deploy-config', JSON.stringify(config));
+      statuses = {};
+      config.projects.forEach(p => { statuses[p.id] = 'ready'; });
+      document.getElementById('config-panel').classList.remove('show');
+      render();
+    }
+
+    function cancelConfig() {
+      document.getElementById('config-panel').classList.remove('show');
+    }
+
+    loadConfig();
+  </script>
+</body>
+</html>
