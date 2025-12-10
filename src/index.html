@@ -223,10 +223,114 @@
     .log-line { white-space: pre-wrap; word-break: break-all; }
     .log-line.system { color: #4ade80; font-weight: 600; }
     .log-line.error { color: #ef4444; }
+
+    /* 헤더 */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .help-btn {
+      background: transparent;
+      border: 1px solid #64748b;
+      color: #94a3b8;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .help-btn:hover { border-color: #94a3b8; color: #eee; }
+
+    /* 모달 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid #334155;
+    }
+    .modal h2 { margin-bottom: 16px; color: #fff; font-size: 18px; }
+    .modal h3 { margin: 16px 0 8px; color: #4ade80; font-size: 14px; }
+    .modal p, .modal li { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+    .modal ul { padding-left: 20px; margin-bottom: 12px; }
+    .modal code {
+      background: #0f0f23;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      color: #fbbf24;
+    }
+    .modal-close {
+      background: #334155;
+      color: #eee;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 16px;
+    }
   </style>
 </head>
 <body>
-  <h1>Biocom Dashboard</h1>
+  <div class="header">
+    <h1>Biocom Dashboard</h1>
+    <button class="help-btn" onclick="toggleHelp()">?</button>
+  </div>
+
+  <!-- 도움말 모달 -->
+  <div class="modal-overlay" id="help-modal" onclick="if(event.target===this)toggleHelp()">
+    <div class="modal">
+      <h2>Dashboard 사용 가이드</h2>
+
+      <h3>Deploy 탭</h3>
+      <p>GCP에 프로젝트를 배포합니다.</p>
+      <ul>
+        <li><strong>Deploy</strong> - 해당 프로젝트의 배포 스크립트 실행</li>
+        <li><strong>Deploy All</strong> - 모든 프로젝트 순차 배포</li>
+      </ul>
+      <p>설정에서 <code>Deploy Script</code> (배포 스크립트 경로)와 <code>Deploy Project ID</code> (GCP 프로젝트 ID)를 지정합니다.</p>
+
+      <h3>Commit 탭</h3>
+      <p>Claude Code를 사용하여 git 작업을 자동화합니다.</p>
+      <ul>
+        <li><strong>Commit</strong> - Claude가 diff를 분석하여 커밋 메시지 자동 생성 및 커밋</li>
+        <li><strong>Commit & Push</strong> - 커밋 후 development 브랜치에 머지하고 푸시</li>
+        <li><strong>Merge to dev</strong> - 현재 브랜치를 development에 머지하고 푸시</li>
+        <li><strong>Commit All</strong> - 모든 프로젝트 순차 커밋</li>
+        <li><strong>Push All</strong> - 모든 프로젝트 순차 푸시</li>
+      </ul>
+
+      <h3>프로젝트 자동 스캔</h3>
+      <p>Commit Settings에서 상위 디렉토리 경로를 입력하고 <strong>Scan</strong> 버튼을 클릭하면 하위의 git 프로젝트들을 자동으로 검색하여 추가합니다.</p>
+
+      <h3>주의사항</h3>
+      <ul>
+        <li>Claude CLI 경로가 <code>/Users/shinwoo/.nvm/versions/node/v24.2.0/bin/claude</code>로 하드코딩되어 있습니다.</li>
+        <li>Commit 기능은 <code>--dangerously-skip-permissions</code> 플래그를 사용합니다.</li>
+        <li>development 브랜치가 있는 프로젝트에서만 Merge to dev가 정상 작동합니다.</li>
+      </ul>
+
+      <button class="modal-close" onclick="toggleHelp()">닫기</button>
+    </div>
+  </div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('deploy')">Deploy</button>
@@ -780,6 +884,12 @@
         const input = document.getElementById('commit-scan-path');
         if (input) input.value = savedPath;
       }
+    }
+
+    // 도움말 모달 토글
+    function toggleHelp() {
+      const modal = document.getElementById('help-modal');
+      modal.classList.toggle('show');
     }
 
     loadConfig();
