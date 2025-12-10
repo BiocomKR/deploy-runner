@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { streamSSE } from 'hono/streaming';
 import { spawn, execSync } from 'child_process';
-import { accessSync, constants, readFileSync } from 'fs';
+import { accessSync, constants, readFileSync, readdirSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 
 const app = new Hono();
@@ -225,6 +225,39 @@ app.get('/api/merge-dev', async (c) => {
   `;
 
   return streamSSE(c, runCommandSSE('bash', ['-c', script], cwd));
+});
+
+// Git 프로젝트 자동 검색 API
+app.get('/api/scan-git-projects', async (c) => {
+  const rootPath = c.req.query('path');
+  if (!rootPath) return c.json({ error: 'Missing path' }, 400);
+
+  if (!existsSync(rootPath)) {
+    return c.json({ error: 'Path does not exist' }, 400);
+  }
+
+  const projects: { id: string; label: string; path: string }[] = [];
+
+  try {
+    const entries = readdirSync(rootPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith('.')) {
+        const projectPath = join(rootPath, entry.name);
+        const gitPath = join(projectPath, '.git');
+        if (existsSync(gitPath)) {
+          projects.push({
+            id: entry.name.toLowerCase().replace(/\s+/g, '-'),
+            label: entry.name,
+            path: projectPath,
+          });
+        }
+      }
+    }
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+
+  return c.json({ projects });
 });
 
 const port = 3333;

@@ -272,6 +272,13 @@
   </div>
   <div class="config-panel" id="commit-config-panel">
     <h3 class="config-title">Commit Settings</h3>
+    <div class="config-field" style="margin-bottom:16px;">
+      <label class="label">Scan Root Path (상위 디렉토리 입력 시 하위 git 프로젝트 자동 검색)</label>
+      <div style="display:flex;gap:8px;">
+        <input class="input" id="commit-scan-path" placeholder="/path/to/parent/directory" style="flex:1;">
+        <button class="btn btn-push btn-small" onclick="scanGitProjects()">Scan</button>
+      </div>
+    </div>
     <div id="commit-project-list"></div>
     <button class="add-btn" onclick="addProject('commit')">+ Add Project</button>
     <div class="config-btn-row">
@@ -631,6 +638,8 @@
           editDeployConfig = JSON.parse(JSON.stringify(deployConfig));
         } else {
           editCommitConfig = JSON.parse(JSON.stringify(commitConfig));
+          // 스캔 경로 복원
+          setTimeout(restoreScanPath, 0);
         }
         renderConfigPanel(tab);
         panel.classList.add('show');
@@ -721,6 +730,56 @@
 
     function cancelConfig(tab) {
       document.getElementById(`${tab}-config-panel`).classList.remove('show');
+    }
+
+    // Git 프로젝트 자동 스캔
+    async function scanGitProjects() {
+      const pathInput = document.getElementById('commit-scan-path');
+      const rootPath = pathInput.value.trim();
+      if (!rootPath) {
+        alert('스캔할 경로를 입력하세요.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/scan-git-projects?path=${encodeURIComponent(rootPath)}`);
+        const data = await res.json();
+
+        if (data.error) {
+          alert(`스캔 실패: ${data.error}`);
+          return;
+        }
+
+        if (data.projects.length === 0) {
+          alert('해당 경로에서 git 프로젝트를 찾을 수 없습니다.');
+          return;
+        }
+
+        // 기존 프로젝트와 병합 (중복 제거)
+        const existingPaths = new Set(editCommitConfig.projects.map(p => p.path));
+        for (const project of data.projects) {
+          if (!existingPaths.has(project.path)) {
+            editCommitConfig.projects.push(project);
+          }
+        }
+
+        // 스캔 경로 저장
+        localStorage.setItem('dashboard-commit-scan-path', rootPath);
+
+        renderConfigPanel('commit');
+        alert(`${data.projects.length}개의 git 프로젝트를 찾았습니다.`);
+      } catch (err) {
+        alert(`스캔 중 오류 발생: ${err.message}`);
+      }
+    }
+
+    // 저장된 스캔 경로 복원
+    function restoreScanPath() {
+      const savedPath = localStorage.getItem('dashboard-commit-scan-path');
+      if (savedPath) {
+        const input = document.getElementById('commit-scan-path');
+        if (input) input.value = savedPath;
+      }
     }
 
     loadConfig();
