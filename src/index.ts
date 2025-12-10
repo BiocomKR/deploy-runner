@@ -118,8 +118,10 @@ function runCommandSSE(command: string, args: string[], cwd: string) {
 // Claude Code로 커밋 생성 SSE 엔드포인트
 app.get('/api/commit', async (c) => {
   const cwd = c.req.query('cwd');
-  console.log('[COMMIT] Request received:', cwd);
+  const claudePath = c.req.query('claudePath');
+  console.log('[COMMIT] Request received:', cwd, 'claudePath:', claudePath);
   if (!cwd) return c.text('Missing cwd', 400);
+  if (!claudePath) return c.text('Missing claudePath', 400);
 
   return streamSSE(c, async (stream) => {
     const sendEvent = async (data: object) => {
@@ -127,7 +129,7 @@ app.get('/api/commit', async (c) => {
     };
 
     console.log('[COMMIT] Running claude CLI with execSync...');
-    const command = `${CLAUDE_PATH} -p 'git diff를 확인하고 변경사항에 맞는 커밋 메시지를 작성해서 커밋해줘. 코드 수정 없이 커밋만 해. 커밋 prefix는 feat/fix/refactor/chore/docs 중 적절한 것을 사용해.' --dangerously-skip-permissions --input-format text`;
+    const command = `${claudePath} -p 'git diff를 확인하고 변경사항에 맞는 커밋 메시지를 작성해서 커밋해줘. 코드 수정 없이 커밋만 해. 커밋 prefix는 feat/fix/refactor/chore/docs 중 적절한 것을 사용해.' --dangerously-skip-permissions --input-format text`;
 
     try {
       const stdout = execSync(command, { cwd, env: process.env, maxBuffer: 10 * 1024 * 1024, encoding: 'utf-8' });
@@ -160,7 +162,9 @@ app.get('/api/push', async (c) => {
 // Commit & Push to development SSE 엔드포인트
 app.get('/api/commit-and-push-dev', async (c) => {
   const cwd = c.req.query('cwd');
+  const claudePath = c.req.query('claudePath');
   if (!cwd) return c.text('Missing cwd', 400);
+  if (!claudePath) return c.text('Missing claudePath', 400);
 
   // Claude로 커밋 → development에 머지 → 푸시 → 원래 브랜치 복귀
   return streamSSE(c, async (stream: any) => {
@@ -170,7 +174,7 @@ app.get('/api/commit-and-push-dev', async (c) => {
 
     // 1. Claude로 커밋 (execSync 사용)
     await sendEvent({ type: 'stdout', text: '>>> Step 1: Creating commit with Claude...\n' });
-    const command = `${CLAUDE_PATH} -p 'git diff를 확인하고 변경사항에 맞는 커밋 메시지를 작성해서 커밋해줘. 코드 수정 없이 커밋만 해. 커밋 prefix는 feat/fix/refactor/chore/docs 중 적절한 것을 사용해.' --dangerously-skip-permissions --input-format text`;
+    const command = `${claudePath} -p 'git diff를 확인하고 변경사항에 맞는 커밋 메시지를 작성해서 커밋해줘. 코드 수정 없이 커밋만 해. 커밋 prefix는 feat/fix/refactor/chore/docs 중 적절한 것을 사용해.' --dangerously-skip-permissions --input-format text`;
 
     let commitResult = 0;
     try {
@@ -262,25 +266,7 @@ app.get('/api/scan-git-projects', async (c) => {
 
 const port = 3333;
 
-// Claude CLI 경로 (nvm 환경에서는 절대 경로 필요)
-const CLAUDE_PATH = '/Users/shinwoo/.nvm/versions/node/v24.2.0/bin/claude';
-
-// Claude CLI Pre-warming (첫 실행 시 초기화 지연 감소)
-async function warmupClaudeCLI() {
-  console.log('🔄 Warming up Claude CLI...');
-  const start = Date.now();
-
-  try {
-    execSync(`${CLAUDE_PATH} -p 'echo ready' --dangerously-skip-permissions --input-format text`, { timeout: 30000, encoding: 'utf-8' });
-    console.log(`✅ Claude CLI warmed up in ${Date.now() - start}ms`);
-  } catch (err: any) {
-    console.log(`⚠️ Claude CLI warmup failed: ${err.message}`);
-    if (err.stderr) console.log(`   stderr: ${err.stderr}`);
-  }
-}
-
-// 서버 시작 후 백그라운드에서 warmup 실행
-setTimeout(warmupClaudeCLI, 1000);
+// Claude CLI 경로는 클라이언트에서 전달받음
 
 console.log(`Server running at http://localhost:${port}`);
 
