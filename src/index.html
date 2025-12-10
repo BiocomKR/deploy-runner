@@ -3,82 +3,129 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Biocom Deploy Dashboard</title>
+  <title>Biocom Dashboard</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #1a1a2e;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
       color: #eee;
       min-height: 100vh;
       padding: 24px;
     }
-    h1 { margin-bottom: 24px; color: #fff; font-size: 22px; }
+    h1 { margin-bottom: 16px; color: #fff; font-size: 22px; }
+
+    /* 탭 */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 0;
+    }
+    .tab {
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tab:hover { color: #eee; }
+    .tab.active {
+      color: #4ade80;
+      border-bottom-color: #4ade80;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     /* 상태바 */
     .status-bar {
       display: flex;
-      gap: 16px;
+      gap: 12px;
       margin-bottom: 16px;
       font-size: 13px;
       flex-wrap: wrap;
       align-items: center;
     }
     .status-item {
-      padding: 8px 16px;
+      padding: 6px 12px;
       border-radius: 6px;
       background: #16213e;
-      color: #eee;
+      color: #94a3b8;
+      font-size: 12px;
     }
     .status-item.running { background: #fbbf24; color: #1a1a2e; }
     .status-item.success { background: #4ade80; color: #1a1a2e; }
     .status-item.error { background: #ef4444; color: white; }
 
-    .help-wrapper { position: relative; display: flex; align-items: center; }
-    .help-icon {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #334155;
-      color: #94a3b8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .help-tooltip {
-      display: none;
-      position: absolute;
-      top: 28px;
-      left: 0;
-      background: #16213e;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 12px;
-      z-index: 100;
-      min-width: 180px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .help-tooltip.show { display: block; }
-    .help-title { font-weight: 600; margin-bottom: 8px; color: #fff; font-size: 13px; }
-    .help-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px; color: #94a3b8; }
-    .help-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #64748b; }
-
     /* 버튼 */
-    .btn-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .btn-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
     .btn {
-      padding: 14px 24px;
+      padding: 12px 20px;
       border: none;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       color: white;
+      transition: opacity 0.2s;
     }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-deploy { background: #e94560; }
+    .btn-commit { background: #8b5cf6; }
+    .btn-push { background: #3b82f6; }
+    .btn-merge { background: #f59e0b; }
+    .btn-commit-push { background: linear-gradient(90deg, #8b5cf6, #3b82f6); }
     .btn-all { background: #4ade80; color: #1a1a2e; }
+    .btn-small {
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+
+    /* 프로젝트 카드 */
+    .project-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+      max-width: 700px;
+    }
+    .project-card {
+      background: rgba(22, 33, 62, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .project-info {
+      min-width: 140px;
+    }
+    .project-name {
+      font-weight: 600;
+      color: #fff;
+      font-size: 14px;
+    }
+    .project-path {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .project-actions {
+      display: flex;
+      gap: 8px;
+    }
 
     /* 설정 */
     .config-section { margin-bottom: 16px; }
@@ -127,6 +174,7 @@
       border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
+      flex-shrink: 0;
     }
     .add-btn {
       background: #334155;
@@ -159,126 +207,231 @@
 
     /* 로그 */
     .log-container {
-      background: #0f0f23;
+      background: rgba(15, 15, 35, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 8px;
       padding: 16px;
-      height: calc(100vh - 320px);
+      height: calc(100vh - 400px);
+      min-height: 200px;
+      max-width: 700px;
       overflow-y: auto;
       font-family: 'Monaco', 'Menlo', monospace;
       font-size: 12px;
       line-height: 1.5;
     }
     .log-line { white-space: pre-wrap; word-break: break-all; }
+    .log-line.system { color: #4ade80; font-weight: 600; }
+    .log-line.error { color: #ef4444; }
   </style>
 </head>
 <body>
-  <h1>Biocom Deploy Dashboard</h1>
+  <h1>Biocom Dashboard</h1>
 
-  <div class="status-bar" id="status-bar"></div>
-
-  <div class="btn-row" id="btn-row"></div>
-
-  <div class="config-section">
-    <button class="config-toggle" onclick="toggleConfig()">Settings</button>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('deploy')">Deploy</button>
+    <button class="tab" onclick="switchTab('commit')">Commit</button>
   </div>
 
-  <div class="config-panel" id="config-panel">
+  <!-- 배포 탭 -->
+  <div id="tab-deploy" class="tab-content active">
+    <div class="status-bar" id="deploy-status-bar"></div>
+    <div class="project-cards" id="deploy-cards"></div>
+    <div class="btn-row">
+      <button class="btn btn-all" onclick="deployAll()" id="btn-deploy-all">Deploy All</button>
+    </div>
+  </div>
+
+  <!-- 커밋 탭 -->
+  <div id="tab-commit" class="tab-content">
+    <div class="status-bar" id="commit-status-bar"></div>
+    <div class="project-cards" id="commit-cards"></div>
+    <div class="btn-row">
+      <button class="btn btn-all" onclick="commitAll()" id="btn-commit-all">Commit All</button>
+      <button class="btn btn-push" onclick="pushAll()" id="btn-push-all">Push All</button>
+    </div>
+  </div>
+
+  <!-- Deploy 설정 패널 -->
+  <div id="deploy-config-section" class="config-section" style="display:none;">
+    <button class="config-toggle" onclick="toggleConfig('deploy')">Deploy Settings</button>
+  </div>
+  <div class="config-panel" id="deploy-config-panel">
     <h3 class="config-title">Deploy Settings</h3>
-    <div id="project-list"></div>
-    <button class="add-btn" onclick="addProject()">+ Add Project</button>
+    <div id="deploy-project-list"></div>
+    <button class="add-btn" onclick="addProject('deploy')">+ Add Project</button>
     <div class="config-btn-row">
-      <button class="save-btn" onclick="saveConfig()">Save</button>
-      <button class="cancel-btn" onclick="cancelConfig()">Cancel</button>
+      <button class="save-btn" onclick="saveConfig('deploy')">Save</button>
+      <button class="cancel-btn" onclick="cancelConfig('deploy')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Commit 설정 패널 -->
+  <div id="commit-config-section" class="config-section" style="display:none;">
+    <button class="config-toggle" onclick="toggleConfig('commit')">Commit Settings</button>
+  </div>
+  <div class="config-panel" id="commit-config-panel">
+    <h3 class="config-title">Commit Settings</h3>
+    <div id="commit-project-list"></div>
+    <button class="add-btn" onclick="addProject('commit')">+ Add Project</button>
+    <div class="config-btn-row">
+      <button class="save-btn" onclick="saveConfig('commit')">Save</button>
+      <button class="cancel-btn" onclick="cancelConfig('commit')">Cancel</button>
     </div>
   </div>
 
   <div class="log-container" id="log"></div>
 
   <script>
-    const DEFAULT_CONFIG = {
+    // 탭별 기본 설정
+    const DEFAULT_DEPLOY_CONFIG = {
       projects: [
-        { id: 'example-api', label: 'example-api', script: '/path/to/your/project/scripts/deploy-api.sh', color: '#e94560' },
-        { id: 'example-web', label: 'example-web', script: '/path/to/your/project/scripts/deploy-web.sh', color: '#3b82f6' }
+        {
+          id: 'biocom-api',
+          label: 'biocom-api',
+          deployScript: '/Users/shinwoo/Desktop/Biocom/repo/biocom-api/infra-gcp/scripts/02-deploy-app.sh',
+          deployProjectId: 'api-dev-biocom'
+        },
+        {
+          id: 'biocom-bo-api',
+          label: 'biocom-bo-api',
+          deployScript: '/Users/shinwoo/Desktop/Biocom/repo/biocom-bo-api/infra-gcp/scripts/02-deploy-app.sh',
+          deployProjectId: 'biocom-backoffice'
+        }
+      ]
+    };
+
+    const DEFAULT_COMMIT_CONFIG = {
+      projects: [
+        { id: 'biocom-api', label: 'biocom-api', path: '/Users/shinwoo/Desktop/Biocom/repo/biocom-api' },
+        { id: 'biocom-bo-api', label: 'biocom-bo-api', path: '/Users/shinwoo/Desktop/Biocom/repo/biocom-bo-api' },
+        { id: 'biocom-admin', label: 'biocom-admin', path: '/Users/shinwoo/Desktop/Biocom/repo/biocom-admin' }
       ]
     };
 
     const COLORS = ['#e94560', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899'];
-    let config = null;
-    let editConfig = null;
+    let deployConfig = null;
+    let commitConfig = null;
+    let editDeployConfig = null;
+    let editCommitConfig = null;
     let statuses = {};
     let isRunning = false;
+    let currentTab = 'deploy';
 
     function loadConfig() {
-      const saved = localStorage.getItem('deploy-config');
-      config = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
-      config.projects.forEach(p => { statuses[p.id] = 'ready'; });
+      // 탭별 설정 로드
+      const savedDeploy = localStorage.getItem('dashboard-deploy-config');
+      const savedCommit = localStorage.getItem('dashboard-commit-config');
+      deployConfig = savedDeploy ? JSON.parse(savedDeploy) : DEFAULT_DEPLOY_CONFIG;
+      commitConfig = savedCommit ? JSON.parse(savedCommit) : DEFAULT_COMMIT_CONFIG;
+
+      // 상태 초기화
+      deployConfig.projects.forEach(p => {
+        statuses[`deploy-${p.id}`] = 'ready';
+      });
+      commitConfig.projects.forEach(p => {
+        statuses[`commit-${p.id}`] = 'ready';
+      });
+
+      // 저장된 탭 복원
+      const savedTab = localStorage.getItem('dashboard-current-tab');
+      if (savedTab) {
+        currentTab = savedTab;
+        switchTab(currentTab);
+      }
       render();
     }
 
-    function render() {
-      renderStatusBar();
-      renderButtons();
+    function switchTab(tab) {
+      currentTab = tab;
+      localStorage.setItem('dashboard-current-tab', tab);
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector(`.tab:nth-child(${tab === 'deploy' ? 1 : 2})`).classList.add('active');
+      document.getElementById(`tab-${tab}`).classList.add('active');
+
+      // 탭별 설정 버튼 표시/숨김
+      document.getElementById('deploy-config-section').style.display = tab === 'deploy' ? 'block' : 'none';
+      document.getElementById('commit-config-section').style.display = tab === 'commit' ? 'block' : 'none';
+      // 설정 패널 닫기
+      document.getElementById('deploy-config-panel').classList.remove('show');
+      document.getElementById('commit-config-panel').classList.remove('show');
     }
 
-    function renderStatusBar() {
-      const container = document.getElementById('status-bar');
-      let html = config.projects.map(p => {
-        const status = statuses[p.id] || 'ready';
+    function render() {
+      renderDeployTab();
+      renderCommitTab();
+    }
+
+    function renderDeployTab() {
+      const statusBar = document.getElementById('deploy-status-bar');
+      const cards = document.getElementById('deploy-cards');
+
+      statusBar.innerHTML = deployConfig.projects.map(p => {
+        const status = statuses[`deploy-${p.id}`] || 'ready';
         return `<div class="status-item ${status}">${p.label}: ${getStatusText(status)}</div>`;
       }).join('');
 
-      html += `
-        <div class="help-wrapper">
-          <span class="help-icon" id="help-icon">?</span>
-          <div class="help-tooltip" id="help-tooltip">
-            <div class="help-title">Status Guide</div>
-            <div class="help-item"><span class="help-dot" style="background:#16213e"></span> Ready: 대기 중</div>
-            <div class="help-item"><span class="help-dot" style="background:#fbbf24"></span> Deploying: 배포 진행 중</div>
-            <div class="help-item"><span class="help-dot" style="background:#4ade80"></span> Success: 배포 성공</div>
-            <div class="help-item"><span class="help-dot" style="background:#ef4444"></span> Failed: 배포 실패</div>
+      cards.innerHTML = deployConfig.projects.map(p => `
+        <div class="project-card">
+          <div class="project-info">
+            <div class="project-name">${p.label}</div>
+            <div class="project-path" title="${p.deployScript}">${p.deployScript}</div>
+          </div>
+          <div class="project-actions">
+            <button class="btn btn-deploy btn-small" onclick="deploy('${p.id}')" ${isRunning ? 'disabled' : ''}>Deploy</button>
           </div>
         </div>
-      `;
-      container.innerHTML = html;
-
-      document.getElementById('help-icon').addEventListener('mouseenter', () => {
-        document.getElementById('help-tooltip').classList.add('show');
-      });
-      document.getElementById('help-icon').addEventListener('mouseleave', () => {
-        document.getElementById('help-tooltip').classList.remove('show');
-      });
-    }
-
-    function renderButtons() {
-      const container = document.getElementById('btn-row');
-      let html = config.projects.map((p, i) => `
-        <button class="btn" style="background:${p.color}" onclick="deploy(${i})" ${isRunning ? 'disabled' : ''} title="${p.script}">
-          Deploy ${p.label}
-        </button>
       `).join('');
 
-      html += `<button class="btn btn-all" onclick="deployAll()" ${isRunning ? 'disabled' : ''}>Deploy All</button>`;
-      container.innerHTML = html;
+      document.getElementById('btn-deploy-all').disabled = isRunning;
+    }
+
+    function renderCommitTab() {
+      const statusBar = document.getElementById('commit-status-bar');
+      const cards = document.getElementById('commit-cards');
+
+      statusBar.innerHTML = commitConfig.projects.map(p => {
+        const status = statuses[`commit-${p.id}`] || 'ready';
+        return `<div class="status-item ${status}">${p.label}: ${getStatusText(status)}</div>`;
+      }).join('');
+
+      cards.innerHTML = commitConfig.projects.map(p => `
+        <div class="project-card">
+          <div class="project-info">
+            <div class="project-name">${p.label}</div>
+            <div class="project-path" title="${p.path}">${p.path}</div>
+          </div>
+          <div class="project-actions">
+            <button class="btn btn-commit btn-small" onclick="commit('${p.id}')" ${isRunning ? 'disabled' : ''}>Commit</button>
+            <button class="btn btn-commit-push btn-small" onclick="commitAndPushDev('${p.id}')" ${isRunning ? 'disabled' : ''}>Commit & Push</button>
+            <button class="btn btn-merge btn-small" onclick="mergeAndPush('${p.id}')" ${isRunning ? 'disabled' : ''}>Merge to dev</button>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('btn-commit-all').disabled = isRunning;
+      document.getElementById('btn-push-all').disabled = isRunning;
     }
 
     function getStatusText(status) {
       switch(status) {
-        case 'running': return 'Deploying...';
+        case 'running': return 'Running...';
         case 'success': return 'Success';
         case 'error': return 'Failed';
         default: return 'Ready';
       }
     }
 
-    function setStatus(projectId, status) {
-      statuses[projectId] = status;
-      renderStatusBar();
+    function setStatus(projectId, type, status) {
+      statuses[`${type}-${projectId}`] = status;
+      render();
     }
 
-    function addLog(text) {
+    function addLog(text, className = '') {
       const log = document.getElementById('log');
       const div = document.createElement('div');
-      div.className = 'log-line';
+      div.className = `log-line ${className}`;
       div.textContent = text;
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
@@ -288,22 +441,153 @@
       document.getElementById('log').innerHTML = '';
     }
 
-    async function deploy(index) {
+    // ===== Deploy =====
+    async function deploy(projectId) {
       if (isRunning) return;
-      const project = config.projects[index];
-      if (!project || !project.script) {
-        alert('Script path not configured');
-        return;
-      }
+      const project = deployConfig.projects.find(p => p.id === projectId);
+      if (!project?.deployScript) return;
 
       isRunning = true;
-      renderButtons();
+      render();
       clearLog();
-      addLog(`[START] Deploying ${project.label}...`);
-      setStatus(project.id, 'running');
+      addLog(`[START] Deploying ${project.label}...`, 'system');
+      setStatus(projectId, 'deploy', 'running');
 
-      try {
-        const url = `/api/deploy?projectId=${encodeURIComponent(project.id)}&script=${encodeURIComponent(project.script)}`;
+      await runSSE(`/api/deploy?projectId=${encodeURIComponent(project.deployProjectId)}&script=${encodeURIComponent(project.deployScript)}`, projectId, 'deploy', project.label);
+
+      isRunning = false;
+      render();
+    }
+
+    async function deployAll() {
+      if (isRunning) return;
+      isRunning = true;
+      render();
+      clearLog();
+
+      for (const project of deployConfig.projects) {
+        addLog(`[START] Deploying ${project.label}...`, 'system');
+        setStatus(project.id, 'deploy', 'running');
+        await runSSE(`/api/deploy?projectId=${encodeURIComponent(project.deployProjectId)}&script=${encodeURIComponent(project.deployScript)}`, project.id, 'deploy', project.label);
+        addLog('');
+      }
+
+      addLog('[COMPLETE] All deployments finished!', 'system');
+      isRunning = false;
+      render();
+    }
+
+    // ===== Commit =====
+    async function commit(projectId) {
+      if (isRunning) return;
+      const project = commitConfig.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      isRunning = true;
+      render();
+      clearLog();
+      addLog(`[START] Committing ${project.label}...`, 'system');
+      setStatus(projectId, 'commit', 'running');
+
+      await runSSE(`/api/commit?cwd=${encodeURIComponent(project.path)}`, projectId, 'commit', project.label);
+
+      isRunning = false;
+      render();
+    }
+
+    async function commitAll() {
+      if (isRunning) return;
+      isRunning = true;
+      render();
+      clearLog();
+
+      for (const project of commitConfig.projects) {
+        addLog(`[START] Committing ${project.label}...`, 'system');
+        setStatus(project.id, 'commit', 'running');
+        await runSSE(`/api/commit?cwd=${encodeURIComponent(project.path)}`, project.id, 'commit', project.label);
+        addLog('');
+      }
+
+      addLog('[COMPLETE] All commits finished!', 'system');
+      isRunning = false;
+      render();
+    }
+
+    // ===== Push =====
+    async function push(projectId) {
+      if (isRunning) return;
+      const project = commitConfig.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      isRunning = true;
+      render();
+      clearLog();
+      addLog(`[START] Pushing ${project.label}...`, 'system');
+      setStatus(projectId, 'commit', 'running');
+
+      await runSSE(`/api/push?cwd=${encodeURIComponent(project.path)}`, projectId, 'commit', project.label);
+
+      isRunning = false;
+      render();
+    }
+
+    async function pushAll() {
+      if (isRunning) return;
+      isRunning = true;
+      render();
+      clearLog();
+
+      for (const project of commitConfig.projects) {
+        addLog(`[START] Pushing ${project.label}...`, 'system');
+        setStatus(project.id, 'commit', 'running');
+        await runSSE(`/api/push?cwd=${encodeURIComponent(project.path)}`, project.id, 'commit', project.label);
+        addLog('');
+      }
+
+      addLog('[COMPLETE] All pushes finished!', 'system');
+      isRunning = false;
+      render();
+    }
+
+    // ===== Commit & Push to dev =====
+    async function commitAndPushDev(projectId) {
+      if (isRunning) return;
+      const project = commitConfig.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      isRunning = true;
+      render();
+      clearLog();
+      addLog(`[START] Commit & Push ${project.label} to development...`, 'system');
+      setStatus(projectId, 'commit', 'running');
+
+      await runSSE(`/api/commit-and-push-dev?cwd=${encodeURIComponent(project.path)}`, projectId, 'commit', project.label);
+
+      isRunning = false;
+      render();
+    }
+
+    // ===== Merge to dev =====
+    async function mergeAndPush(projectId) {
+      if (isRunning) return;
+      const project = commitConfig.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      isRunning = true;
+      render();
+      clearLog();
+      addLog(`[START] Merging ${project.label} to development...`, 'system');
+      setStatus(projectId, 'commit', 'running');
+
+      await runSSE(`/api/merge-dev?cwd=${encodeURIComponent(project.path)}`, projectId, 'commit', project.label);
+
+      isRunning = false;
+      render();
+    }
+
+    // ===== SSE Runner =====
+    function runSSE(url, projectId, type, label) {
+      return new Promise((resolve) => {
         const eventSource = new EventSource(url);
 
         eventSource.onmessage = (event) => {
@@ -313,151 +597,135 @@
           } else if (data.type === 'done') {
             eventSource.close();
             if (data.code === 0) {
-              addLog(`[DONE] ${project.label} deployed successfully!`);
-              setStatus(project.id, 'success');
+              addLog(`[DONE] ${label} completed successfully!`, 'system');
+              setStatus(projectId, type, 'success');
             } else {
-              addLog(`[ERROR] ${project.label} deployment failed (exit code: ${data.code})`);
-              setStatus(project.id, 'error');
+              addLog(`[ERROR] ${label} failed (exit code: ${data.code})`, 'error');
+              setStatus(projectId, type, 'error');
             }
-            isRunning = false;
-            renderButtons();
+            resolve();
           } else if (data.type === 'error') {
             eventSource.close();
-            addLog(`[ERROR] ${data.text}`);
-            setStatus(project.id, 'error');
-            isRunning = false;
-            renderButtons();
+            addLog(`[ERROR] ${data.text}`, 'error');
+            setStatus(projectId, type, 'error');
+            resolve();
           }
         };
 
         eventSource.onerror = () => {
           eventSource.close();
-          addLog('[ERROR] Connection error');
-          setStatus(project.id, 'error');
-          isRunning = false;
-          renderButtons();
+          addLog('[ERROR] Connection error', 'error');
+          setStatus(projectId, type, 'error');
+          resolve();
         };
-      } catch (err) {
-        addLog(`[ERROR] ${err.message}`);
-        setStatus(project.id, 'error');
-        isRunning = false;
-        renderButtons();
-      }
+      });
     }
 
-    async function deployAll() {
-      if (isRunning) return;
-      isRunning = true;
-      renderButtons();
-      clearLog();
-
-      for (let i = 0; i < config.projects.length; i++) {
-        const project = config.projects[i];
-        addLog(`[START] Deploying ${project.label}...`);
-        setStatus(project.id, 'running');
-
-        await new Promise((resolve) => {
-          const url = `/api/deploy?projectId=${encodeURIComponent(project.id)}&script=${encodeURIComponent(project.script)}`;
-          const eventSource = new EventSource(url);
-
-          eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'stdout' || data.type === 'stderr') {
-              addLog(data.text);
-            } else if (data.type === 'done') {
-              eventSource.close();
-              if (data.code === 0) {
-                addLog(`[DONE] ${project.label} deployed successfully!`);
-                setStatus(project.id, 'success');
-              } else {
-                addLog(`[ERROR] ${project.label} deployment failed (exit code: ${data.code})`);
-                setStatus(project.id, 'error');
-              }
-              addLog('');
-              resolve();
-            } else if (data.type === 'error') {
-              eventSource.close();
-              addLog(`[ERROR] ${data.text}`);
-              setStatus(project.id, 'error');
-              addLog('');
-              resolve();
-            }
-          };
-
-          eventSource.onerror = () => {
-            eventSource.close();
-            addLog('[ERROR] Connection error');
-            setStatus(project.id, 'error');
-            addLog('');
-            resolve();
-          };
-        });
-      }
-
-      addLog('[COMPLETE] All deployments finished!');
-      isRunning = false;
-      renderButtons();
-    }
-
-    function toggleConfig() {
-      const panel = document.getElementById('config-panel');
+    // ===== Config =====
+    function toggleConfig(tab) {
+      const panel = document.getElementById(`${tab}-config-panel`);
       if (panel.classList.contains('show')) {
         panel.classList.remove('show');
       } else {
-        editConfig = JSON.parse(JSON.stringify(config));
-        renderConfigPanel();
+        if (tab === 'deploy') {
+          editDeployConfig = JSON.parse(JSON.stringify(deployConfig));
+        } else {
+          editCommitConfig = JSON.parse(JSON.stringify(commitConfig));
+        }
+        renderConfigPanel(tab);
         panel.classList.add('show');
       }
     }
 
-    function renderConfigPanel() {
-      const container = document.getElementById('project-list');
-      container.innerHTML = editConfig.projects.map((p, i) => `
-        <div class="project-config">
-          <div class="project-header">
-            <input class="input" style="font-weight:600;margin-bottom:8px" value="${p.label}" placeholder="Label" onchange="updateEditProject(${i}, 'label', this.value)">
-            <button class="remove-btn" onclick="removeEditProject(${i})">X</button>
+    function renderConfigPanel(tab) {
+      const container = document.getElementById(`${tab}-project-list`);
+      if (tab === 'deploy') {
+        container.innerHTML = editDeployConfig.projects.map((p, i) => `
+          <div class="project-config">
+            <div class="project-header">
+              <input class="input" style="font-weight:600;margin-bottom:8px;flex:1" value="${p.label}" placeholder="Label" onchange="updateEditProject('deploy', ${i}, 'label', this.value)">
+              <button class="remove-btn" onclick="removeEditProject('deploy', ${i})">X</button>
+            </div>
+            <div class="config-field">
+              <label class="label">Deploy Script</label>
+              <input class="input" value="${p.deployScript || ''}" placeholder="/path/to/deploy-script.sh" onchange="updateEditProject('deploy', ${i}, 'deployScript', this.value)">
+            </div>
+            <div class="config-field">
+              <label class="label">Deploy Project ID</label>
+              <input class="input" value="${p.deployProjectId || ''}" placeholder="gcp-project-id" onchange="updateEditProject('deploy', ${i}, 'deployProjectId', this.value)">
+            </div>
           </div>
-          <div class="config-field">
-            <label class="label">Script Path</label>
-            <input class="input" value="${p.script}" placeholder="/path/to/deploy-script.sh" onchange="updateEditProject(${i}, 'script', this.value)">
+        `).join('');
+      } else {
+        container.innerHTML = editCommitConfig.projects.map((p, i) => `
+          <div class="project-config">
+            <div class="project-header">
+              <input class="input" style="font-weight:600;margin-bottom:8px;flex:1" value="${p.label}" placeholder="Label" onchange="updateEditProject('commit', ${i}, 'label', this.value)">
+              <button class="remove-btn" onclick="removeEditProject('commit', ${i})">X</button>
+            </div>
+            <div class="config-field">
+              <label class="label">Project Path (git root)</label>
+              <input class="input" value="${p.path || ''}" placeholder="/path/to/project" onchange="updateEditProject('commit', ${i}, 'path', this.value)">
+            </div>
           </div>
-        </div>
-      `).join('');
-    }
-
-    function updateEditProject(index, field, value) {
-      editConfig.projects[index][field] = value;
-      if (field === 'label') {
-        editConfig.projects[index].id = value.toLowerCase().replace(/\s+/g, '-');
+        `).join('');
       }
     }
 
-    function addProject() {
-      const color = COLORS[editConfig.projects.length % COLORS.length];
-      editConfig.projects.push({ id: `project-${Date.now()}`, label: 'New Project', script: '', color });
-      renderConfigPanel();
+    function updateEditProject(tab, index, field, value) {
+      const config = tab === 'deploy' ? editDeployConfig : editCommitConfig;
+      config.projects[index][field] = value;
+      if (field === 'label') {
+        config.projects[index].id = value.toLowerCase().replace(/\s+/g, '-');
+      }
     }
 
-    function removeEditProject(index) {
-      editConfig.projects.splice(index, 1);
-      renderConfigPanel();
+    function addProject(tab) {
+      const config = tab === 'deploy' ? editDeployConfig : editCommitConfig;
+      if (tab === 'deploy') {
+        config.projects.push({
+          id: `project-${Date.now()}`,
+          label: 'New Project',
+          deployScript: '',
+          deployProjectId: ''
+        });
+      } else {
+        config.projects.push({
+          id: `project-${Date.now()}`,
+          label: 'New Project',
+          path: ''
+        });
+      }
+      renderConfigPanel(tab);
     }
 
-    function saveConfig() {
-      config = editConfig;
-      localStorage.setItem('deploy-config', JSON.stringify(config));
-      statuses = {};
-      config.projects.forEach(p => { statuses[p.id] = 'ready'; });
-      document.getElementById('config-panel').classList.remove('show');
+    function removeEditProject(tab, index) {
+      const config = tab === 'deploy' ? editDeployConfig : editCommitConfig;
+      config.projects.splice(index, 1);
+      renderConfigPanel(tab);
+    }
+
+    function saveConfig(tab) {
+      if (tab === 'deploy') {
+        deployConfig = editDeployConfig;
+        localStorage.setItem('dashboard-deploy-config', JSON.stringify(deployConfig));
+        deployConfig.projects.forEach(p => { statuses[`deploy-${p.id}`] = 'ready'; });
+      } else {
+        commitConfig = editCommitConfig;
+        localStorage.setItem('dashboard-commit-config', JSON.stringify(commitConfig));
+        commitConfig.projects.forEach(p => { statuses[`commit-${p.id}`] = 'ready'; });
+      }
+      document.getElementById(`${tab}-config-panel`).classList.remove('show');
       render();
     }
 
-    function cancelConfig() {
-      document.getElementById('config-panel').classList.remove('show');
+    function cancelConfig(tab) {
+      document.getElementById(`${tab}-config-panel`).classList.remove('show');
     }
 
     loadConfig();
+    // 초기 탭 설정 버튼 표시
+    switchTab(currentTab);
   </script>
 </body>
 </html>
