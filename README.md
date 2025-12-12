@@ -1,57 +1,44 @@
 # Deploy Runner
 
-로컬 배포 스크립트를 웹 UI에서 실행할 수 있는 대시보드
+배포 스크립트 실행 + Claude 자동 커밋을 웹 UI로 제공하는 로컬 대시보드
 
-## 설치
+## 설치 & 실행
 
 ```bash
 npm install
-```
-
-## 실행
-
-```bash
-npm run dev   # 개발 모드 (hot reload)
-npm start     # 프로덕션 모드
+npm run dev
 ```
 
 http://localhost:3333 접속
 
-## 사용법
+## 탭 구성
 
-### 1. 프로젝트 추가
-1. Settings 버튼 클릭
-2. "+ Add Project" 클릭
-3. Label과 Script Path 입력
-4. Save 클릭
+### Deploy 탭
+배포 스크립트를 원클릭으로 실행
 
-### 2. 배포 실행
-- 개별 배포: 각 프로젝트 버튼 클릭
-- 전체 배포: "Deploy All" 버튼 클릭
+- **Deploy**: 개별 프로젝트 배포 스크립트 실행
+- **Deploy All**: 모든 프로젝트 순차 배포
 
-### 3. 설정 예시
+**설정**: Deploy Settings에서 Label과 Script Path 입력
 
-| 필드 | 예시 |
-|------|------|
-| Label | api-dev |
-| Script Path | /path/to/your/project/scripts/deploy.sh |
+### Commit 탭
+Claude CLI를 사용하여 자동 커밋
 
-## 기능
+- **Commit**: Claude가 diff 분석 후 커밋 메시지 자동 생성 및 커밋
+- **Commit & Push**: 커밋 후 development 브랜치에 머지하고 푸시
+- **Commit All**: 모든 프로젝트 순차 커밋
 
-- 원클릭 배포
-- 실시간 로그 스트리밍 (SSE)
-- 다중 프로젝트 관리
-- Deploy All (순차 배포)
-- 자동 chmod +x 권한 부여
-- LocalStorage 설정 저장
+**설정**: Commit Settings에서 Claude CLI 경로와 프로젝트 경로 입력
+- Claude CLI Path: `which claude` 결과 입력
+- Scan 버튼: 상위 디렉토리 입력 시 하위 git 프로젝트 자동 검색
 
 ## 기술 스택
 
-- [Hono](https://hono.dev/) - 경량 웹 프레임워크
-- Server-Sent Events (SSE) - 실시간 로그
-- Vanilla JS - 프론트엔드
+- Hono (웹 프레임워크)
+- Server-Sent Events (실시간 로그)
 
 ## 주의사항
 
-- 이 도구는 **로컬에서 실행**해야 합니다 (서버가 로컬 스크립트를 실행하는 구조)
-- 스크립트 경로는 절대 경로로 입력하세요
+- 로컬에서만 실행 (서버가 로컬 스크립트 실행)
+- 모든 경로는 절대 경로로 입력
+- Commit 기능은 `--dangerously-skip-permissions` 플래그 사용
