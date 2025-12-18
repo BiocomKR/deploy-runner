@@ -4,6 +4,7 @@ import { streamSSE } from 'hono/streaming';
 import { spawn, execSync } from 'child_process';
 import { accessSync, constants, readFileSync, readdirSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
+import sharp from 'sharp';
 
 const app = new Hono();
 
@@ -213,6 +214,80 @@ app.get('/api/commit-and-push-dev', async (c) => {
   });
 });
 
+// 개발 환경 배포 SSE 엔드포인트
+app.get('/api/deploy-dev', async (c) => {
+  const cwd = c.req.query('cwd');
+  const script = c.req.query('script');
+  const projectId = c.req.query('projectId');
+
+  if (!cwd || !script || !projectId) {
+    return c.text('Missing cwd, script, or projectId', 400);
+  }
+
+  // 스크립트 실행 권한 확인 및 부여
+  try {
+    accessSync(script, constants.X_OK);
+  } catch {
+    try {
+      execSync(`chmod +x "${script}"`);
+    } catch (chmodErr) {
+      return c.text(`Failed to set execute permission: ${chmodErr}`, 500);
+    }
+  }
+
+  // 커밋 → development 머지 → 푸시 → 배포 스크립트 실행
+  return streamSSE(c, async (stream: any) => {
+    const sendEvent = async (data: object) => {
+      await stream.writeSSE({ data: JSON.stringify(data) });
+    };
+
+    // 1. development에 머지 및 푸시
+    await sendEvent({ type: 'stdout', text: '>>> Step 1: Merging to development and pushing...\n' });
+    const mergeScript = `
+      CURRENT_BRANCH=$(git branch --show-current) && \
+      git checkout development && \
+      git pull origin development && \
+      git merge $CURRENT_BRANCH --no-edit && \
+      git push origin development && \
+      git checkout $CURRENT_BRANCH
+    `;
+    const mergeResult = await new Promise<number>((resolve) => {
+      const child = spawn('bash', ['-c', mergeScript], { cwd, env: process.env, shell: true });
+      child.stdout.on('data', async (data: Buffer) => { await sendEvent({ type: 'stdout', text: data.toString() }); });
+      child.stderr.on('data', async (data: Buffer) => { await sendEvent({ type: 'stderr', text: data.toString() }); });
+      child.on('close', (code) => resolve(code ?? 1));
+      child.on('error', () => resolve(1));
+    });
+
+    if (mergeResult !== 0) {
+      await sendEvent({ type: 'done', code: mergeResult });
+      return;
+    }
+
+    // 2. 배포 스크립트 실행
+    await sendEvent({ type: 'stdout', text: '\n>>> Step 2: Deploying to development environment...\n' });
+
+    const env = {
+      ...process.env,
+      CLOUDSDK_CORE_ACCOUNT: 'ai@biocom.kr',
+      GOOGLE_APPLICATION_CREDENTIALS: '',
+    };
+
+    const deployResult = await new Promise<number>((resolve) => {
+      const child = spawn('bash', [script, '--project-id', projectId, '--env', 'development', '--yes'], {
+        cwd,
+        env,
+      });
+      child.stdout.on('data', async (data: Buffer) => { await sendEvent({ type: 'stdout', text: data.toString() }); });
+      child.stderr.on('data', async (data: Buffer) => { await sendEvent({ type: 'stderr', text: data.toString() }); });
+      child.on('close', (code) => resolve(code ?? 1));
+      child.on('error', () => resolve(1));
+    });
+
+    await sendEvent({ type: 'done', code: deployResult });
+  });
+});
+
 // Git Merge to development & Push SSE 엔드포인트
 app.get('/api/merge-dev', async (c) => {
   const cwd = c.req.query('cwd');
@@ -229,6 +304,37 @@ app.get('/api/merge-dev', async (c) => {
   `;
 
   return streamSSE(c, runCommandSSE('bash', ['-c', script], cwd));
+});
+
+// PNG to WebP 변환 API (sharp 사용)
+app.post('/api/convert-webp', async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    const quality = parseInt(formData.get('quality') as string) || 80;
+
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    const webpBuffer = await sharp(buffer)
+      .webp({ quality })
+      .toBuffer();
+
+    return new Response(new Uint8Array(webpBuffer), {
+      headers: {
+        'Content-Type': 'image/webp',
+        'Content-Disposition': `attachment; filename="${file.name.replace(/\.(png|jpg|jpeg)$/i, '.webp')}"`,
+        'X-Original-Size': buffer.length.toString(),
+        'X-Converted-Size': webpBuffer.length.toString(),
+      },
+    });
+  } catch (error: any) {
+    console.error('WebP conversion error:', error);
+    return c.json({ error: error.message }, 500);
+  }
 });
 
 // Git 프로젝트 자동 검색 API
